@@ -1,0 +1,77 @@
+`timescale 1ns/1ps
+
+module tb_button_io;
+
+reg clk;
+reg rst_n;
+reg btn_start;
+reg btn_difficulty;
+reg btn_clear;
+
+wire start_pulse;
+wire difficulty_pulse;
+wire clear_pulse;
+wire [1:0] difficulty_level;
+
+button_io #(
+    .DEBOUNCE_CNTR_WIDTH(4),
+    .NUM_LEVELS(3),
+    .LEVEL_BITS(2)
+) dut (
+    .clk(clk),
+    .rst_n(rst_n),
+    .btn_start(btn_start),
+    .btn_difficulty(btn_difficulty),
+    .btn_clear(btn_clear),
+    .start_pulse(start_pulse),
+    .difficulty_pulse(difficulty_pulse),
+    .clear_pulse(clear_pulse),
+    .difficulty_level(difficulty_level)
+);
+
+initial begin
+    clk = 1'b0;
+    forever #5 clk = ~clk;
+end
+
+initial begin
+    rst_n          = 1'b0;
+    btn_start      = 1'b0;
+    btn_difficulty = 1'b0;
+    btn_clear      = 1'b0;
+
+    #20 rst_n = 1'b1;
+
+    #40 btn_start = 1'b1;
+    #200 btn_start = 1'b0;
+
+    #100 btn_difficulty = 1'b1;
+    #200 btn_difficulty = 1'b0;
+
+    #200 btn_difficulty = 1'b1;
+    #200 btn_difficulty = 1'b0;
+
+    #200 btn_difficulty = 1'b1;
+    #200 btn_difficulty = 1'b0;
+
+    #200 btn_clear = 1'b1;
+    #200 btn_clear = 1'b0;
+
+    #400 $finish;
+end
+
+always @(posedge clk) begin
+    if (start_pulse)
+        $display("time %0t: start_pulse, difficulty_level=%0d", $time, difficulty_level);
+    if (difficulty_pulse)
+        $display("time %0t: difficulty_pulse, difficulty_level=%0d", $time, difficulty_level);
+    if (clear_pulse)
+        $display("time %0t: clear_pulse, difficulty_level=%0d", $time, difficulty_level);
+end
+
+initial begin
+    $dumpfile("tb_button_io.vcd");
+    $dumpvars(0, tb_button_io);
+end
+
+endmodule

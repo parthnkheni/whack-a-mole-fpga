@@ -1,4 +1,4 @@
-module scan_counter_4digit(
+module scan_counter(
     input  wire clk_scan,
     input  wire rst_n,
     output reg  [1:0] sel
