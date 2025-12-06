@@ -5,7 +5,8 @@ module game_control_fsm(
     
     input  wire        btn_reset,
     input  wire        btn_reset_score,
-    input  wire [1:0]  btn_difficulty,
+    input  wire        btn_difficulty_pulse,
+    input  wire [1:0]  difficulty_level_input,
     
     input  wire        timeout_pulse,
     input  wire        hit_pulse,
@@ -62,13 +63,9 @@ module game_control_fsm(
         end else begin
             state <= next_state;
             
-            if ((state == STATE_IDLE || state == STATE_GAME_OVER) && btn_difficulty != 2'b00) begin
-                if (btn_difficulty == 2'b01)
-                    difficulty_reg <= 2'b00;
-                else if (btn_difficulty == 2'b10)
-                    difficulty_reg <= 2'b01;
-                else if (btn_difficulty == 2'b11)
-                    difficulty_reg <= 2'b10;
+            // Only update difficulty on button pulse when in IDLE or GAME_OVER state
+            if ((state == STATE_IDLE || state == STATE_GAME_OVER) && btn_difficulty_pulse) begin
+                difficulty_reg <= difficulty_level_input;
             end
         end
     end

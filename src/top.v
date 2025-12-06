@@ -130,7 +130,7 @@ module top (
         .clk_game      (CLK100MHZ),
         .rst_n         (rst_n),
         .enable        (enable_mole_ctrl),
-        .level         (difficulty_level_btn),  // level from button_io
+        .level         (difficulty_level_fsm),  // level from FSM (controlled by state machine)
         .btn_hit_pulse (btn_hit_pulse_vec),
         .mole_led      (mole_led),
         .hit_pulse     (hit_pulse),
@@ -172,7 +172,8 @@ module top (
 
         .btn_reset             (start_pulse),
         .btn_reset_score       (clear_pulse),
-        .btn_difficulty        (difficulty_level_btn),
+        .btn_difficulty_pulse  (difficulty_pulse),
+        .difficulty_level_input(difficulty_level_btn),
 
         .timeout_pulse         (timeout_pulse),
         .hit_pulse             (hit_pulse),
