@@ -78,7 +78,7 @@ module game_control_fsm(
             end
 
             // ---------------------------------------------
-            // COUNTDOWN: show 5 -> 0, then start playing
+            // COUNTDOWN: show 5 -> 1, then start playing
             // ---------------------------------------------
             STATE_COUNTDOWN: begin
                 if (countdown_sec >= COUNTDOWN_MAX)
@@ -177,9 +177,10 @@ module game_control_fsm(
                     clear_game_timer  <= 1'b1;
                     clear_score       <= 1'b1;
 
-                    // Display countdown: 5, 4, 3, 2, 1, 0
+                    // Display countdown: 5, 4, 3, 2, 1
                     // countdown_sec starts at 0, so we show (5-0)=5, then (5-1)=4, etc.
-                    if (countdown_sec <= COUNTDOWN_MAX)
+                    // When countdown_sec >= COUNTDOWN_MAX, we're transitioning to PLAYING
+                    if (countdown_sec < COUNTDOWN_MAX)
                         display_value <= {2'b00, (COUNTDOWN_MAX - countdown_sec)};
                     else
                         display_value <= 8'd0;

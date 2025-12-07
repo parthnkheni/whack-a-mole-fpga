@@ -13,7 +13,9 @@ module sec_counter(
             if (clear) begin
                 sec <= 6'd0;
             end else if (enable) begin
-                sec <= sec + 6'd1;
+                
+                if (sec < 6'd63)
+                    sec <= sec + 6'd1;
             end
         end
     end

@@ -18,14 +18,14 @@ module clock_divider #(
             cnt_scan <= 32'd0;
             clk_scan <= 1'b0;
         end else begin
-            if (cnt_1hz == DIV_1HZ - 1) begin
+            if (cnt_1hz == (DIV_1HZ / 2) - 1) begin
                 cnt_1hz <= 32'd0;
                 clk_1hz <= ~clk_1hz;
             end else begin
                 cnt_1hz <= cnt_1hz + 32'd1;
             end
 
-            if (cnt_scan == DIV_SCAN - 1) begin
+            if (cnt_scan == (DIV_SCAN / 2) - 1) begin
                 cnt_scan <= 32'd0;
                 clk_scan <= ~clk_scan;
             end else begin
