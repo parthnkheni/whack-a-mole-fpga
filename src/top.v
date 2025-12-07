@@ -1,18 +1,18 @@
 module top (
-    input        CLK100MHZ,
-    input        BTNC,
-    input        BTNU,
-    input        BTNL,
-    input        BTNR,
-    input        BTND,
-    input  [4:0] SW,          // 5 switches under the 5 LEDs
+    input        clk,
+    input        reset,
+    input        button_start,
+    input        button_clear,
+    input        button_difficulity,
+    input        button_hammer,
+    input  [4:0] swith,          // 5 switches under the 5 LEDs
     output [4:0] LED,
     output [6:0] seg,
-    output [3:0] an
+    output [3:0] digit_select
 );
 
     wire rst_n;
-    assign rst_n = ~BTNC;
+    assign rst_n = ~reset;
 
     // ---------------------------------------------------------
     // Button IO (start / difficulty / clear)
@@ -27,11 +27,11 @@ module top (
         .NUM_LEVELS(3),
         .LEVEL_BITS(2)
     ) u_button_io (
-        .clk              (CLK100MHZ),
+        .clk              (clk),
         .rst_n            (rst_n),
-        .btn_start        (BTNU),
-        .btn_difficulty   (BTNR),
-        .btn_clear        (BTNL),
+        .btn_start        (button_start),
+        .btn_difficulty   (button_difficulity),
+        .btn_clear        (button_clear),
         .start_pulse      (start_pulse),
         .difficulty_pulse (difficulty_pulse),
         .clear_pulse      (clear_pulse),
@@ -44,8 +44,8 @@ module top (
     wire clk_1hz;
     wire clk_scan;
 
-    clk_divider u_clk_divider (
-        .clk      (CLK100MHZ),
+    clock_divider u_clk_divider (
+        .clk      (clk),
         .rst_n    (rst_n),
         .clk_1hz  (clk_1hz),
         .clk_scan (clk_scan)
@@ -79,7 +79,7 @@ module top (
     );
 
     // ---------------------------------------------------------
-    // Hammer button (BTND) debounce
+    // Hammer button (button_hammer) debounce
     // ---------------------------------------------------------
     wire hit_btn_level;
     wire hit_btn_pulse;
@@ -87,25 +87,25 @@ module top (
     debounce_one_pulse #(
         .CNTR_WIDTH(20)
     ) u_hit_button (
-        .clk       (CLK100MHZ),
+        .clk       (clk),
         .rst_n     (rst_n),
-        .btn_raw   (BTND),
+        .btn_raw   (button_hammer),
         .btn_level (hit_btn_level),
         .btn_pulse (hit_btn_pulse)
     );
 
     // ---------------------------------------------------------
-    // Hit vector: when hammer is pressed, sample SW[4:0]
-    // Each bit of SW corresponds to the LED above it.
+    // Hit vector: when hammer is pressed, sample swith[4:0]
+    // Each bit of swith corresponds to the LED above it.
     // ---------------------------------------------------------
     reg [4:0] btn_hit_pulse_vec;
 
-    always @(posedge CLK100MHZ or negedge rst_n) begin
+    always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             btn_hit_pulse_vec <= 5'b00000;
         end else begin
             if (hit_btn_pulse)
-                btn_hit_pulse_vec <= SW;      // pulse on those switches when hammer is hit
+                btn_hit_pulse_vec <= swith;      // pulse on those switches when hammer is hit
             else
                 btn_hit_pulse_vec <= 5'b00000;
         end
@@ -127,7 +127,7 @@ module top (
         .LED_TICKS_MED (200_000_000),  // ~2 s
         .LED_TICKS_HARD(100_000_000)   // ~1 s
     ) u_mole_led_and_random (
-        .clk_game      (CLK100MHZ),
+        .clk_game      (clk),
         .rst_n         (rst_n),
         .enable        (enable_mole_ctrl),
         .level         (difficulty_level_fsm),  // level from FSM (controlled by state machine)
@@ -150,7 +150,7 @@ module top (
         .WIDTH(8),
         .MAX_SCORE(99)
     ) u_score_counter (
-        .clk       (CLK100MHZ),
+        .clk       (clk),
         .rst_n     (rst_n),
         .enable    (enable_score),
         .clear     (clear_score),
@@ -166,7 +166,7 @@ module top (
     wire [1:0] game_state;
 
     game_control_fsm u_game_control_fsm (
-        .clk                   (CLK100MHZ),
+        .clk                   (clk),
         .clk_1hz               (clk_1hz),
         .rst_n                 (rst_n),
 
@@ -199,16 +199,16 @@ module top (
     // ---------------------------------------------------------
     // 7-segment display: show display_value from FSM
     // ---------------------------------------------------------
-    wire [1:0] an2;
+    wire [1:0] andigit_select2;
 
     two_digit_7seg u_two_digit_7seg (
         .clk_1k (clk_scan),
         .score  (display_value),
         .seg    (seg),
-        .an     (an2)
+        .an     (andigit_select2)
     );
 
     // Only lower 2 digits used (rightmost two); upper two off
-    assign an = {2'b11, an2};
+    assign andigit_select = {2'b11, andigit_select2};
 
 endmodule
