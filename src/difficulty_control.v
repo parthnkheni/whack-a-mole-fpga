@@ -14,8 +14,8 @@ module difficulty_timer #(
 
 );
 
-    reg [7:0] tick_cnt;
-    wire [7:0] tick_limit;
+    reg [31:0] tick_cnt;  // Changed to 32-bit to support large tick counts
+    wire [31:0] tick_limit;
 
     assign tick_limit = (level == 2'd0) ? LED_TICKS_EASY :
                         (level == 2'd1) ? LED_TICKS_MED  :
@@ -23,26 +23,32 @@ module difficulty_timer #(
 
     always @(posedge clk_game or negedge rst_n) begin
         if (!rst_n) begin
-            tick_cnt      <= 8'd0;
+            tick_cnt      <= 32'd0;
             timeout_pulse <= 1'b0;
             active        <= 1'b0;
         end else begin
             timeout_pulse <= 1'b0;
 
             if (!enable) begin
-                tick_cnt <= 8'd0;
+                tick_cnt <= 32'd0;
                 active   <= 1'b0;
             end else begin
                 if (start) begin
-                    tick_cnt <= 8'd0;
+                    // Start signal resets counter and activates timer
+                    // This has priority over timeout check
+                    tick_cnt <= 32'd0;
                     active   <= 1'b1;
                 end else if (active) begin
-                    tick_cnt <= tick_cnt + 8'd1;
+                    // Timer is active - increment counter
+                    tick_cnt <= tick_cnt + 32'd1;
                     if (tick_cnt >= tick_limit - 1) begin
+                        // Timeout reached - generate pulse and deactivate
                         timeout_pulse <= 1'b1;
                         active        <= 1'b0;
                     end
                 end
+                // Note: If start and timeout_pulse occur in same cycle,
+                // start takes priority and timer resets
             end
         end
     end

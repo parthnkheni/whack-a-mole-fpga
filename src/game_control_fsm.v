@@ -145,14 +145,16 @@ module game_control_fsm(
 
             case (state)
                 // -----------------------------------------
-                // IDLE: everything cleared, display 0
+                // IDLE: everything cleared, display difficulty level (00, 01, 02)
                 // -----------------------------------------
                 STATE_IDLE: begin
                     clear_countdown  <= 1'b1;
                     clear_game_timer <= 1'b1;
                     clear_score      <= 1'b1;
 
-                    display_value    <= 8'd0;
+                    // Display current difficulty level: 00, 01, or 02
+                    // difficulty_reg is 2 bits (00, 01, 02), convert to BCD format
+                    display_value    <= {4'd0, difficulty_reg};
 
                     // clear-score button here is basically redundant,
                     // but we keep for safety/consistency.
