@@ -40,6 +40,7 @@ module game_control_fsm(
 
     reg [1:0] state, next_state;
     reg [1:0] difficulty_reg;
+    reg [1:0] prev_state;  // Track previous state to detect transitions
 
     // ---------------------------------------------------------
     // State register + difficulty register
@@ -47,8 +48,10 @@ module game_control_fsm(
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             state          <= STATE_IDLE;
+            prev_state     <= STATE_IDLE;
             difficulty_reg <= 2'b00;
         end else begin
+            prev_state <= state;  // Save current state before update
             state <= next_state;
 
             // Only allow difficulty changes in IDLE or GAME_OVER
@@ -163,11 +166,19 @@ module game_control_fsm(
                 // COUNTDOWN: enable countdown, show remaining time
                 // -----------------------------------------
                 STATE_COUNTDOWN: begin
+                    // Clear countdown when first entering COUNTDOWN state
+                    // (transitioning from IDLE or GAME_OVER)
+                    if (prev_state != STATE_COUNTDOWN) begin
+                        clear_countdown <= 1'b1;
+                    end
+                    
                     enable_countdown  <= 1'b1;
                     // make sure game timer & score are reset before play
                     clear_game_timer  <= 1'b1;
                     clear_score       <= 1'b1;
 
+                    // Display countdown: 5, 4, 3, 2, 1, 0
+                    // countdown_sec starts at 0, so we show (5-0)=5, then (5-1)=4, etc.
                     if (countdown_sec <= COUNTDOWN_MAX)
                         display_value <= {2'b00, (COUNTDOWN_MAX - countdown_sec)};
                     else

@@ -190,16 +190,18 @@ game_control_fsm u_game_control_fsm (
     // ---------------------------------------------------------
     // 7-segment display: show display_value from FSM
     // ---------------------------------------------------------
-    wire [1:0] andigit_select2;
+    wire [1:0] an_digit_select2;
 
     two_digit_7seg u_two_digit_7seg (
         .clk_1k (clk_scan),
+        .rst_n  (rst_n),
         .score  (display_value),
         .seg    (seg),
-        .an     (digit_select)
+        .an     (an_digit_select2)
     );
 
     // Only lower 2 digits used (rightmost two); upper two off
-    //assign andigit_select = {2'b11, andigit_select2};
+    // an is active low, so 1'b1 means off
+    assign digit_select = {2'b11, an_digit_select2};
 
 endmodule

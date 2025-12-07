@@ -17,8 +17,8 @@ module score_counter #(
             if (clear) begin
                 score <= {WIDTH{1'b0}};
             end else if (enable && hit_pulse) begin
-                if (score < MAX_SCORE[WIDTH-1:0])
-                    score <= score + {{(WIDTH-1){1'b0}},1'b1};
+                if (score < MAX_SCORE)
+                    score <= score + 1'b1;
             end
         end
     end
