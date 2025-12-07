@@ -1,5 +1,5 @@
 module clock_divider #(
-    parameter integer DIV_1HZ   = 50_000_000,
+    parameter integer DIV_1HZ   = 100_000_000,  // For 100MHz system clock: 100MHz / 100_000_000 = 1Hz
     parameter integer DIV_SCAN = 50_000
 )(
     input  wire clk,
