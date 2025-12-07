@@ -206,11 +206,20 @@ module game_control_fsm(
                 // PLAYING: enable game timer, scoring and mole control
                 // -----------------------------------------
                 STATE_PLAYING: begin
+                    // Enable game timer - starts counting from 0 when entering PLAYING state
+                    // (game timer was cleared during COUNTDOWN state)
                     enable_game_timer <= 1'b1;
                     enable_score      <= 1'b1;
                     enable_mole_ctrl  <= 1'b1;
 
+                    // Display current score during gameplay
                     display_value     <= score;
+
+                    // Clear game timer when first entering PLAYING state to ensure it starts from 0
+                    // This ensures clean transition from COUNTDOWN to PLAYING
+                    if (prev_state != STATE_PLAYING) begin
+                        clear_game_timer <= 1'b1;
+                    end
 
                     // clear-score button: reset score + timer
                     if (btn_clear_score) begin
