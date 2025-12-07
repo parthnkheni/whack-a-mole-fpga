@@ -161,40 +161,31 @@ module top (
     // ---------------------------------------------------------
     // Game control FSM
     // ---------------------------------------------------------
-    wire [7:0] display_value;
-    wire       display_mode;
-    wire [1:0] game_state;
+game_control_fsm u_game_control_fsm (
+    .clk                   (clk),
+    .rst_n                 (rst_n),
 
-    game_control_fsm u_game_control_fsm (
-        .clk                   (clk),
-        .clk_1hz               (clk_1hz),
-        .rst_n                 (rst_n),
+    .btn_start             (start_pulse),
+    .btn_clear_score       (clear_pulse),
+    .btn_difficulty_pulse  (difficulty_pulse),
+    .difficulty_level_input(difficulty_level_btn),
 
-        .btn_reset             (start_pulse),
-        .btn_reset_score       (clear_pulse),
-        .btn_difficulty_pulse  (difficulty_pulse),
-        .difficulty_level_input(difficulty_level_btn),
+    .countdown_sec         (countdown_sec),
+    .game_time_sec         (game_time_sec),
+    .score                 (score),
 
-        .timeout_pulse         (timeout_pulse),
-        .hit_pulse             (hit_pulse),
-        .countdown_sec         (countdown_sec),
-        .game_time_sec         (game_time_sec),
-        .score                 (score),
+    .enable_countdown      (enable_countdown),
+    .clear_countdown       (clear_countdown),
+    .enable_game_timer     (enable_game_timer),
+    .clear_game_timer      (clear_game_timer),
+    .enable_score          (enable_score),
+    .clear_score           (clear_score),
+    .enable_mole_ctrl      (enable_mole_ctrl),
+    .difficulty_level      (difficulty_level_fsm),
 
-        .enable_countdown      (enable_countdown),
-        .clear_countdown       (clear_countdown),
-        .enable_game_timer     (enable_game_timer),
-        .clear_game_timer      (clear_game_timer),
-        .enable_score          (enable_score),
-        .clear_score           (clear_score),
-        .enable_mole_ctrl      (enable_mole_ctrl),
-        .enable_difficulty_timer(enable_difficulty_timer),
-        .difficulty_level      (difficulty_level_fsm),
+    .display_value         (display_value)
+);
 
-        .display_value         (display_value),
-        .display_mode          (display_mode),
-        .game_state            (game_state)
-    );
 
     // ---------------------------------------------------------
     // 7-segment display: show display_value from FSM
@@ -205,10 +196,10 @@ module top (
         .clk_1k (clk_scan),
         .score  (display_value),
         .seg    (seg),
-        .an     (andigit_select2)
+        .an     (digit_select)
     );
 
     // Only lower 2 digits used (rightmost two); upper two off
-    assign andigit_select = {2'b11, andigit_select2};
+    //assign andigit_select = {2'b11, andigit_select2};
 
 endmodule
