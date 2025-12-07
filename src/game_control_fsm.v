@@ -180,10 +180,14 @@ module game_control_fsm(
                     // Display countdown: 5, 4, 3, 2, 1
                     // countdown_sec starts at 0, so we show (5-0)=5, then (5-1)=4, etc.
                     // When countdown_sec >= COUNTDOWN_MAX, we're transitioning to PLAYING
-                    if (countdown_sec < COUNTDOWN_MAX)
-                        display_value <= {2'b00, (COUNTDOWN_MAX - countdown_sec)};
-                    else
+                    if (countdown_sec < COUNTDOWN_MAX) begin
+                        // Convert to BCD format: [7:4] = tens, [3:0] = ones
+                        // COUNTDOWN_MAX - countdown_sec gives value 5, 4, 3, 2, 1
+                        // Since all values are < 10, tens = 0, ones = value
+                        display_value <= {4'd0, (COUNTDOWN_MAX - countdown_sec)[3:0]};
+                    end else begin
                         display_value <= 8'd0;
+                    end
 
                     if (btn_clear_score) begin
                         clear_score      <= 1'b1;

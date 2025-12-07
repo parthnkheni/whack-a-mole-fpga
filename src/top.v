@@ -161,30 +161,32 @@ module top (
     // ---------------------------------------------------------
     // Game control FSM
     // ---------------------------------------------------------
-game_control_fsm u_game_control_fsm (
-    .clk                   (clk),
-    .rst_n                 (rst_n),
+    wire [7:0] display_value;
 
-    .btn_start             (start_pulse),
-    .btn_clear_score       (clear_pulse),
-    .btn_difficulty_pulse  (difficulty_pulse),
-    .difficulty_level_input(difficulty_level_btn),
+    game_control_fsm u_game_control_fsm (
+        .clk                   (clk),
+        .rst_n                 (rst_n),
 
-    .countdown_sec         (countdown_sec),
-    .game_time_sec         (game_time_sec),
-    .score                 (score),
+        .btn_start             (start_pulse),
+        .btn_clear_score       (clear_pulse),
+        .btn_difficulty_pulse  (difficulty_pulse),
+        .difficulty_level_input(difficulty_level_btn),
 
-    .enable_countdown      (enable_countdown),
-    .clear_countdown       (clear_countdown),
-    .enable_game_timer     (enable_game_timer),
-    .clear_game_timer      (clear_game_timer),
-    .enable_score          (enable_score),
-    .clear_score           (clear_score),
-    .enable_mole_ctrl      (enable_mole_ctrl),
-    .difficulty_level      (difficulty_level_fsm),
+        .countdown_sec         (countdown_sec),
+        .game_time_sec         (game_time_sec),
+        .score                 (score),
 
-    .display_value         (display_value)
-);
+        .enable_countdown      (enable_countdown),
+        .clear_countdown       (clear_countdown),
+        .enable_game_timer     (enable_game_timer),
+        .clear_game_timer      (clear_game_timer),
+        .enable_score          (enable_score),
+        .clear_score           (clear_score),
+        .enable_mole_ctrl      (enable_mole_ctrl),
+        .difficulty_level      (difficulty_level_fsm),
+
+        .display_value         (display_value)
+    );
 
 
     // ---------------------------------------------------------
