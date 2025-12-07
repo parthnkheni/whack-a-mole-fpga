@@ -184,7 +184,7 @@ module game_control_fsm(
                         // Convert to BCD format: [7:4] = tens, [3:0] = ones
                         // COUNTDOWN_MAX - countdown_sec gives value 5, 4, 3, 2, 1
                         // Since all values are < 10, tens = 0, ones = value
-                        display_value <= {4'd0, (COUNTDOWN_MAX - countdown_sec)[3:0]};
+                        display_value <= {4'd0, (COUNTDOWN_MAX - countdown_sec)};
                     end else begin
                         display_value <= 8'd0;
                     end
