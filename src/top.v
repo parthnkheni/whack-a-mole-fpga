@@ -95,19 +95,34 @@ module top (
     );
 
     // ---------------------------------------------------------
-    // Hit vector: when hammer is pressed, sample swith[4:0]
+    // Hit vector: when hammer is pressed, check for switch rising edge
     // Each bit of swith corresponds to the LED above it.
+    // Only score when: switch has rising edge (0->1) AND button is pressed
     // ---------------------------------------------------------
     reg [4:0] btn_hit_pulse_vec;
+    reg [4:0] swith_prev;  // Previous state of switches for edge detection
 
+    // Track previous switch state
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            swith_prev <= 5'b00000;
+        end else begin
+            swith_prev <= swith;
+        end
+    end
+
+    // Generate hit pulse vector: only when switch has rising edge AND button is pressed
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             btn_hit_pulse_vec <= 5'b00000;
         end else begin
-            if (hit_btn_pulse)
-                btn_hit_pulse_vec <= swith;      // pulse on those switches when hammer is hit
-            else
+            if (hit_btn_pulse) begin
+                // Detect rising edge: previous was 0, current is 1
+                // Only set bit if there's a rising edge on that switch
+                btn_hit_pulse_vec <= swith & ~swith_prev;
+            end else begin
                 btn_hit_pulse_vec <= 5'b00000;
+            end
         end
     end
 
