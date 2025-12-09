@@ -233,16 +233,22 @@ module game_control_fsm(
                         // Calculate remaining time
                         if (game_time_sec == 6'd0) begin
                             // 30 seconds remaining
-                            display_left <= {4'd3, 4'd0};
+                            display_left <= 8'h30;
                         end else if (game_time_sec <= 6'd10) begin
-                            // 20-29 seconds remaining: tens=2, ones=(30-game_time_sec)-20
-                            display_left <= {4'd2, ((GAME_TIME_MAX - game_time_sec) - 6'd20) & 4'hF};
+                            // 20-29 seconds remaining
+                            // time_remaining = 30 - game_time_sec, range 29-20
+                            // tens = 2, ones = time_remaining - 20
+                            display_left <= {4'd2, 4'd0 + (GAME_TIME_MAX - game_time_sec - 6'd20)};
                         end else if (game_time_sec <= 6'd20) begin
-                            // 10-19 seconds remaining: tens=1, ones=(30-game_time_sec)-10
-                            display_left <= {4'd1, ((GAME_TIME_MAX - game_time_sec) - 6'd10) & 4'hF};
+                            // 10-19 seconds remaining
+                            // time_remaining = 30 - game_time_sec, range 19-10
+                            // tens = 1, ones = time_remaining - 10
+                            display_left <= {4'd1, 4'd0 + (GAME_TIME_MAX - game_time_sec - 6'd10)};
                         end else begin
-                            // 0-9 seconds remaining: tens=0, ones=(30-game_time_sec)
-                            display_left <= {4'd0, (GAME_TIME_MAX - game_time_sec) & 4'hF};
+                            // 0-9 seconds remaining
+                            // time_remaining = 30 - game_time_sec, range 9-0
+                            // tens = 0, ones = time_remaining
+                            display_left <= {4'd0, 4'd0 + (GAME_TIME_MAX - game_time_sec)};
                         end
                     end else begin
                         display_left <= 8'd0;
