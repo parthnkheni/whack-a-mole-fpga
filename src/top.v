@@ -95,19 +95,42 @@ module top (
     );
 
     // ---------------------------------------------------------
+    // Declare mole_led early (will be assigned later)
+    // ---------------------------------------------------------
+    wire [4:0] mole_led;
+
+    // ---------------------------------------------------------
     // Hit vector: when hammer is pressed, check for switch rising edge
     // Each bit of swith corresponds to the LED above it.
-    // Only score when: switch has rising edge (0->1) AND button is pressed
+    // Only score when: LED is on AND switch has rising edge (0->1) AND button is pressed
     // ---------------------------------------------------------
     reg [4:0] btn_hit_pulse_vec;
-    reg [4:0] swith_prev;  // Previous state of switches for edge detection
+    reg [4:0] swith_prev;          // Previous state of switches for edge detection
+    reg [4:0] switch_rising_edge;  // Rising edge detected (only when LED was on)
 
-    // Track previous switch state
+    // Track previous switch state and continuously detect rising edges
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            swith_prev <= 5'b00000;
+            swith_prev        <= 5'b00000;
+            switch_rising_edge <= 5'b00000;
         end else begin
             swith_prev <= swith;
+            
+            // Detect rising edge continuously: previous was 0, current is 1
+            // Only record if corresponding LED is on (LED亮起时才检测)
+            // Keep the flag until button is pressed
+            if (mole_led != 5'b00000) begin
+                // At least one LED is on, detect rising edge for those positions
+                switch_rising_edge <= switch_rising_edge | (mole_led & swith & ~swith_prev);
+            end else begin
+                // No LED is on, clear all rising edge flags
+                switch_rising_edge <= 5'b00000;
+            end
+            
+            // Clear the flag when button is pressed (after it's been used)
+            if (hit_btn_pulse) begin
+                switch_rising_edge <= 5'b00000;
+            end
         end
     end
 
@@ -117,9 +140,9 @@ module top (
             btn_hit_pulse_vec <= 5'b00000;
         end else begin
             if (hit_btn_pulse) begin
-                // Detect rising edge: previous was 0, current is 1
-                // Only set bit if there's a rising edge on that switch
-                btn_hit_pulse_vec <= swith & ~swith_prev;
+                // Check if rising edge was detected: use the accumulated rising edge flags
+                // Only set bits where rising edge was detected AND LED is still on
+                btn_hit_pulse_vec <= switch_rising_edge & mole_led;
             end else begin
                 btn_hit_pulse_vec <= 5'b00000;
             end
@@ -129,7 +152,6 @@ module top (
     // ---------------------------------------------------------
     // Mole + random + difficulty timer
     // ---------------------------------------------------------
-    wire [4:0] mole_led;
     wire       hit_pulse;
     wire       timeout_pulse;
 
