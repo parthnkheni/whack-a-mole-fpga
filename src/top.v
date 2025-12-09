@@ -5,7 +5,7 @@ module top (
     input        button_clear,
     input        button_difficulity,
     input        button_hammer,
-    input  [4:0] swith,          // 5 switches under the 5 LEDs
+    input  [4:0] swith,
     output [4:0] LED,
     output [6:0] seg,
     output [3:0] digit_select
@@ -227,6 +227,8 @@ module top (
     // Game control FSM
     // ---------------------------------------------------------
     wire [7:0] display_value;
+    wire [7:0] display_left;
+    wire [7:0] display_right;
 
     game_control_fsm u_game_control_fsm (
         .clk                   (clk),
@@ -250,25 +252,23 @@ module top (
         .enable_mole_ctrl      (enable_mole_ctrl),
         .difficulty_level      (difficulty_level_fsm),
 
-        .display_value         (display_value)
+        .display_value         (display_value),
+        .display_left          (display_left),
+        .display_right         (display_right)
     );
 
 
     // ---------------------------------------------------------
-    // 7-segment display: show display_value from FSM
+    // 7-segment display: 4-digit display
+    // Left 2 digits: countdown, Right 2 digits: score
     // ---------------------------------------------------------
-    wire [1:0] an_digit_select2;
-
-    two_digit_7seg u_two_digit_7seg (
-        .clk_1k (clk_scan),
-        .rst_n  (rst_n),
-        .score  (display_value),
-        .seg    (seg),
-        .an     (an_digit_select2)
+    four_digit_7seg u_four_digit_7seg (
+        .clk_1k      (clk_scan),
+        .rst_n       (rst_n),
+        .left_value  (display_left),
+        .right_value (display_right),
+        .seg         (seg),
+        .an          (digit_select)
     );
-
-    // Only lower 2 digits used (rightmost two); upper two off
-    // an is active low, so 1'b1 means off
-    assign digit_select = {2'b11, an_digit_select2};
 
 endmodule

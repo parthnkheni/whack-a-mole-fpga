@@ -24,7 +24,10 @@ module game_control_fsm(
     output reg [1:0]   difficulty_level,
 
     // Value to show on 7-seg (you decide in top how many digits)
-    output reg [7:0]   display_value
+    output reg [7:0]   display_value,
+    // For 4-digit display: left (timer/countdown) and right (score)
+    output reg [7:0]   display_left,
+    output reg [7:0]   display_right
 );
 
     // ---------------------------------------------------------
@@ -129,6 +132,8 @@ module game_control_fsm(
 
             difficulty_level   <= 2'b00;
             display_value      <= 8'd0;
+            display_left       <= 8'd0;
+            display_right      <= 8'd0;
         end else begin
             // Default each cycle
             enable_countdown   <= 1'b0;
@@ -142,6 +147,8 @@ module game_control_fsm(
 
             difficulty_level   <= difficulty_reg;
             display_value      <= 8'd0;
+            display_left       <= 8'd0;
+            display_right      <= 8'd0;
 
             case (state)
                 // -----------------------------------------
@@ -155,6 +162,8 @@ module game_control_fsm(
                     // Display current difficulty level: 00, 01, or 02
                     // difficulty_reg is 2 bits (00, 01, 02), convert to BCD format
                     display_value    <= {4'd0, difficulty_reg};
+                    display_left     <= 8'd0;
+                    display_right    <= {4'd0, difficulty_reg};
 
                     // clear-score button here is basically redundant,
                     // but we keep for safety/consistency.
@@ -187,9 +196,12 @@ module game_control_fsm(
                         // COUNTDOWN_MAX - countdown_sec gives value 5, 4, 3, 2, 1
                         // Since all values are < 10, tens = 0, ones = value
                         display_value <= {4'd0, (COUNTDOWN_MAX - countdown_sec)};
+                        display_left  <= {4'd0, (COUNTDOWN_MAX - countdown_sec)};
                     end else begin
                         display_value <= 8'd0;
+                        display_left  <= 8'd0;
                     end
+                    display_right <= 8'd0;
 
                     if (btn_clear_score) begin
                         clear_score      <= 1'b1;
@@ -214,6 +226,20 @@ module game_control_fsm(
 
                     // Display current score during gameplay
                     display_value     <= score;
+                    
+                    // Calculate countdown: 30 - game_time_sec, convert to BCD format
+                    if (game_time_sec <= GAME_TIME_MAX) begin
+                        if ((GAME_TIME_MAX - game_time_sec) >= 20) begin
+                            display_left <= {4'd2, (GAME_TIME_MAX - game_time_sec - 6'd20)[3:0]};
+                        end else if ((GAME_TIME_MAX - game_time_sec) >= 10) begin
+                            display_left <= {4'd1, (GAME_TIME_MAX - game_time_sec - 6'd10)[3:0]};
+                        end else begin
+                            display_left <= {4'd0, (GAME_TIME_MAX - game_time_sec)[3:0]};
+                        end
+                    end else begin
+                        display_left <= 8'd0;
+                    end
+                    display_right <= score;
 
                     // Clear game timer when first entering PLAYING state to ensure it starts from 0
                     // This ensures clean transition from COUNTDOWN to PLAYING
@@ -240,6 +266,8 @@ module game_control_fsm(
                 // -----------------------------------------
                 STATE_GAME_OVER: begin
                     display_value <= score;
+                    display_left  <= 8'd0;
+                    display_right <= score;
 
                     if (btn_clear_score) begin
                         clear_score      <= 1'b1;
