@@ -100,49 +100,69 @@ module top (
     wire [4:0] mole_led;
 
     // ---------------------------------------------------------
-    // Hit vector: when hammer is pressed, check for switch rising edge
+    // Hit vector: when hammer is pressed, check for switch state change
     // Each bit of swith corresponds to the LED above it.
-    // Only score when: LED is on AND switch has rising edge (0->1) AND button is pressed
+    // Only score when: LED is on AND switch state changed (0->1 or 1->0) AND button is pressed
+    // When LED turns on at a position, record the initial switch state.
+    // If switch changes from initial state AND switch is currently 1, score is valid.
     // ---------------------------------------------------------
     reg [4:0] btn_hit_pulse_vec;
-    reg [4:0] swith_prev;          // Previous state of switches for edge detection
-    reg [4:0] switch_rising_edge;  // Rising edge detected (only when LED was on)
+    reg [4:0] swith_prev;              // Previous state of switches for edge detection
+    reg [4:0] switch_initial_state;    // Initial switch state when LED turns on
+    reg [4:0] switch_changed;          // Switch state changed flag
+    reg [4:0] mole_led_prev;           // Previous LED state to detect LED turning on
 
-    // Track previous switch state and continuously detect rising edges
+    // Track switch state changes and LED state
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            swith_prev        <= 5'b00000;
-            switch_rising_edge <= 5'b00000;
+            swith_prev          <= 5'b00000;
+            switch_initial_state <= 5'b00000;
+            switch_changed      <= 5'b00000;
+            mole_led_prev       <= 5'b00000;
         end else begin
             swith_prev <= swith;
+            mole_led_prev <= mole_led;
             
-            // Detect rising edge continuously: previous was 0, current is 1
-            // Only record if corresponding LED is on (LED亮起时才检测)
-            // Keep the flag until button is pressed
-            if (mole_led != 5'b00000) begin
-                // At least one LED is on, detect rising edge for those positions
-                switch_rising_edge <= switch_rising_edge | (mole_led & swith & ~swith_prev);
-            end else begin
-                // No LED is on, clear all rising edge flags
-                switch_rising_edge <= 5'b00000;
+            // Detect when LED turns on at a position (rising edge of LED)
+            // When LED turns on, record the initial switch state for that position
+            // led_rising_edge = mole_led & ~mole_led_prev
+            if ((mole_led & ~mole_led_prev) != 5'b00000) begin
+                // LED just turned on at these positions, record initial switch state
+                // For positions where LED just turned on, update initial state
+                switch_initial_state <= (switch_initial_state & ~(mole_led & ~mole_led_prev)) | 
+                                        (swith & (mole_led & ~mole_led_prev));
+                // Clear changed flag for positions where LED just turned on
+                switch_changed <= switch_changed & ~(mole_led & ~mole_led_prev);
             end
             
-            // Clear the flag when button is pressed (after it's been used)
+            // Detect switch state change: compare current state with initial state
+            // Only detect changes when corresponding LED is on
+            if (mole_led != 5'b00000) begin
+                // Check if switch state differs from initial state (change detected)
+                // state_diff = (mole_led & swith) ^ (mole_led & switch_initial_state)
+                // Set changed flag if switch state is different from initial state
+                switch_changed <= switch_changed | ((mole_led & swith) ^ (mole_led & switch_initial_state));
+            end else begin
+                // No LED is on, clear all changed flags
+                switch_changed <= 5'b00000;
+            end
+            
+            // Clear the changed flag when button is pressed (after it's been used)
             if (hit_btn_pulse) begin
-                switch_rising_edge <= 5'b00000;
+                switch_changed <= 5'b00000;
             end
         end
     end
 
-    // Generate hit pulse vector: only when switch has rising edge AND button is pressed
+    // Generate hit pulse vector: only when switch state changed AND button is pressed AND switch is currently 1
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             btn_hit_pulse_vec <= 5'b00000;
         end else begin
             if (hit_btn_pulse) begin
-                // Check if rising edge was detected: use the accumulated rising edge flags
-                // Only set bits where rising edge was detected AND LED is still on
-                btn_hit_pulse_vec <= switch_rising_edge & mole_led;
+                // Check if switch state changed from initial state
+                // Only set bits where: changed flag is set AND LED is on AND switch is currently 1
+                btn_hit_pulse_vec <= switch_changed & mole_led & swith;
             end else begin
                 btn_hit_pulse_vec <= 5'b00000;
             end
