@@ -160,15 +160,17 @@ module top (
         end
     end
 
-    // Generate hit pulse vector: only when switch edge detected AND button is pressed AND switch is currently 1
+    // Generate hit pulse vector: only when switch edge detected AND button is pressed
+    // Score regardless of whether switch is currently 0 or 1, as long as an edge was detected
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             btn_hit_pulse_vec <= 5'b00000;
         end else begin
             if (hit_btn_pulse) begin
                 // Check if switch edge was detected (0->1 or 1->0)
-                // Only set bits where: edge detected flag is set AND LED is on AND switch is currently 1
-                btn_hit_pulse_vec <= switch_edge_detected & mole_led & swith;
+                // Score if edge was detected AND LED is currently on
+                // Don't check switch current state - score on any edge (0->1 or 1->0)
+                btn_hit_pulse_vec <= switch_edge_detected & mole_led;
             end else begin
                 btn_hit_pulse_vec <= 5'b00000;
             end
