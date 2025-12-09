@@ -188,20 +188,20 @@ module game_control_fsm(
                     clear_game_timer  <= 1'b1;
                     clear_score       <= 1'b1;
 
-                    // Display countdown: 5, 4, 3, 2, 1
+                    // Display countdown: 5, 4, 3, 2, 1 on rightmost digit
                     // countdown_sec starts at 0, so we show (5-0)=5, then (5-1)=4, etc.
                     // When countdown_sec >= COUNTDOWN_MAX, we're transitioning to PLAYING
+                    display_left <= 8'd0;
                     if (countdown_sec < COUNTDOWN_MAX) begin
                         // Convert to BCD format: [7:4] = tens, [3:0] = ones
                         // COUNTDOWN_MAX - countdown_sec gives value 5, 4, 3, 2, 1
                         // Since all values are < 10, tens = 0, ones = value
                         display_value <= {4'd0, (COUNTDOWN_MAX - countdown_sec)};
-                        display_left  <= {4'd0, (COUNTDOWN_MAX - countdown_sec)};
+                        display_right <= {4'd0, (COUNTDOWN_MAX - countdown_sec)};
                     end else begin
                         display_value <= 8'd0;
-                        display_left  <= 8'd0;
+                        display_right <= 8'd0;
                     end
-                    display_right <= 8'd0;
 
                     if (btn_clear_score) begin
                         clear_score      <= 1'b1;
@@ -228,20 +228,25 @@ module game_control_fsm(
                     display_value     <= score;
                     
                     // Calculate countdown: 30 - game_time_sec, convert to BCD format
-                    case (game_time_sec)
-                        6'd0, 6'd1, 6'd2, 6'd3, 6'd4, 6'd5, 6'd6, 6'd7, 6'd8, 6'd9, 6'd10: begin
-                            display_left <= {4'd2, (GAME_TIME_MAX - game_time_sec - 6'd20) & 4'hF};
-                        end
-                        6'd11, 6'd12, 6'd13, 6'd14, 6'd15, 6'd16, 6'd17, 6'd18, 6'd19, 6'd20: begin
-                            display_left <= {4'd1, (GAME_TIME_MAX - game_time_sec - 6'd10) & 4'hF};
-                        end
-                        6'd21, 6'd22, 6'd23, 6'd24, 6'd25, 6'd26, 6'd27, 6'd28, 6'd29, 6'd30: begin
+                    // time_remaining ranges from 30 (when game_time_sec=0) to 0 (when game_time_sec=30)
+                    if (game_time_sec <= GAME_TIME_MAX) begin
+                        // Calculate remaining time
+                        if (game_time_sec == 6'd0) begin
+                            // 30 seconds remaining
+                            display_left <= {4'd3, 4'd0};
+                        end else if (game_time_sec <= 6'd10) begin
+                            // 20-29 seconds remaining: tens=2, ones=(30-game_time_sec)-20
+                            display_left <= {4'd2, ((GAME_TIME_MAX - game_time_sec) - 6'd20) & 4'hF};
+                        end else if (game_time_sec <= 6'd20) begin
+                            // 10-19 seconds remaining: tens=1, ones=(30-game_time_sec)-10
+                            display_left <= {4'd1, ((GAME_TIME_MAX - game_time_sec) - 6'd10) & 4'hF};
+                        end else begin
+                            // 0-9 seconds remaining: tens=0, ones=(30-game_time_sec)
                             display_left <= {4'd0, (GAME_TIME_MAX - game_time_sec) & 4'hF};
                         end
-                        default: begin
-                            display_left <= 8'd0;
-                        end
-                    endcase
+                    end else begin
+                        display_left <= 8'd0;
+                    end
                     display_right <= score;
 
                     // Clear game timer when first entering PLAYING state to ensure it starts from 0
