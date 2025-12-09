@@ -38,11 +38,11 @@ module four_digit_7seg(
         case (digit_sel)
             2'b00: begin
                 an  = 4'b1110;
-                seg = seg_left_tens;
+                seg = seg_left_ones;
             end
             2'b01: begin
                 an  = 4'b1101;
-                seg = seg_left_ones;
+                seg = seg_left_tens;
             end
             2'b10: begin
                 an  = 4'b1011;
