@@ -229,27 +229,42 @@ module game_control_fsm(
                     
                     // Calculate countdown: 30 - game_time_sec, convert to BCD format
                     // time_remaining ranges from 30 (when game_time_sec=0) to 0 (when game_time_sec=30)
+                    // BCD format: [7:4] = tens, [3:0] = ones
                     if (game_time_sec <= GAME_TIME_MAX) begin
-                        // Calculate remaining time
-                        if (game_time_sec == 6'd0) begin
-                            // 30 seconds remaining
-                            display_left <= 8'h30;
-                        end else if (game_time_sec <= 6'd10) begin
-                            // 20-29 seconds remaining
-                            // time_remaining = 30 - game_time_sec, range 29-20
-                            // tens = 2, ones = time_remaining - 20
-                            display_left <= {4'd2, 4'd0 + (GAME_TIME_MAX - game_time_sec - 6'd20)};
-                        end else if (game_time_sec <= 6'd20) begin
-                            // 10-19 seconds remaining
-                            // time_remaining = 30 - game_time_sec, range 19-10
-                            // tens = 1, ones = time_remaining - 10
-                            display_left <= {4'd1, 4'd0 + (GAME_TIME_MAX - game_time_sec - 6'd10)};
-                        end else begin
-                            // 0-9 seconds remaining
-                            // time_remaining = 30 - game_time_sec, range 9-0
-                            // tens = 0, ones = time_remaining
-                            display_left <= {4'd0, 4'd0 + (GAME_TIME_MAX - game_time_sec)};
-                        end
+                        case (game_time_sec)
+                            6'd0: display_left <= 8'h30;
+                            6'd1: display_left <= 8'h29;
+                            6'd2: display_left <= 8'h28;
+                            6'd3: display_left <= 8'h27;
+                            6'd4: display_left <= 8'h26;
+                            6'd5: display_left <= 8'h25;
+                            6'd6: display_left <= 8'h24;
+                            6'd7: display_left <= 8'h23;
+                            6'd8: display_left <= 8'h22;
+                            6'd9: display_left <= 8'h21;
+                            6'd10: display_left <= 8'h20;
+                            6'd11: display_left <= 8'h19;
+                            6'd12: display_left <= 8'h18;
+                            6'd13: display_left <= 8'h17;
+                            6'd14: display_left <= 8'h16;
+                            6'd15: display_left <= 8'h15;
+                            6'd16: display_left <= 8'h14;
+                            6'd17: display_left <= 8'h13;
+                            6'd18: display_left <= 8'h12;
+                            6'd19: display_left <= 8'h11;
+                            6'd20: display_left <= 8'h10;
+                            6'd21: display_left <= 8'h09;
+                            6'd22: display_left <= 8'h08;
+                            6'd23: display_left <= 8'h07;
+                            6'd24: display_left <= 8'h06;
+                            6'd25: display_left <= 8'h05;
+                            6'd26: display_left <= 8'h04;
+                            6'd27: display_left <= 8'h03;
+                            6'd28: display_left <= 8'h02;
+                            6'd29: display_left <= 8'h01;
+                            6'd30: display_left <= 8'h00;
+                            default: display_left <= 8'd0;
+                        endcase
                     end else begin
                         display_left <= 8'd0;
                     end
