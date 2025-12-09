@@ -229,10 +229,10 @@ module game_control_fsm(
                     
                     // Calculate countdown: 30 - game_time_sec, convert to BCD format
                     if (game_time_sec <= GAME_TIME_MAX) begin
-                        if ((GAME_TIME_MAX - game_time_sec) >= 6'd20) begin
-                            display_left <= {4'd2, ((GAME_TIME_MAX - game_time_sec) - 6'd20)[3:0]};
-                        end else if ((GAME_TIME_MAX - game_time_sec) >= 6'd10) begin
-                            display_left <= {4'd1, ((GAME_TIME_MAX - game_time_sec) - 6'd10)[3:0]};
+                        if (game_time_sec <= 6'd10) begin
+                            display_left <= {4'd2, (GAME_TIME_MAX - game_time_sec - 6'd20)[3:0]};
+                        end else if (game_time_sec <= 6'd20) begin
+                            display_left <= {4'd1, (GAME_TIME_MAX - game_time_sec - 6'd10)[3:0]};
                         end else begin
                             display_left <= {4'd0, (GAME_TIME_MAX - game_time_sec)[3:0]};
                         end
