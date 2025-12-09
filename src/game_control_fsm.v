@@ -228,17 +228,20 @@ module game_control_fsm(
                     display_value     <= score;
                     
                     // Calculate countdown: 30 - game_time_sec, convert to BCD format
-                    if (game_time_sec <= GAME_TIME_MAX) begin
-                        if (game_time_sec <= 6'd10) begin
-                            display_left <= {4'd2, (GAME_TIME_MAX - game_time_sec - 6'd20)[3:0]};
-                        end else if (game_time_sec <= 6'd20) begin
-                            display_left <= {4'd1, (GAME_TIME_MAX - game_time_sec - 6'd10)[3:0]};
-                        end else begin
-                            display_left <= {4'd0, (GAME_TIME_MAX - game_time_sec)[3:0]};
+                    case (game_time_sec)
+                        6'd0, 6'd1, 6'd2, 6'd3, 6'd4, 6'd5, 6'd6, 6'd7, 6'd8, 6'd9, 6'd10: begin
+                            display_left <= {4'd2, (GAME_TIME_MAX - game_time_sec - 6'd20) & 4'hF};
                         end
-                    end else begin
-                        display_left <= 8'd0;
-                    end
+                        6'd11, 6'd12, 6'd13, 6'd14, 6'd15, 6'd16, 6'd17, 6'd18, 6'd19, 6'd20: begin
+                            display_left <= {4'd1, (GAME_TIME_MAX - game_time_sec - 6'd10) & 4'hF};
+                        end
+                        6'd21, 6'd22, 6'd23, 6'd24, 6'd25, 6'd26, 6'd27, 6'd28, 6'd29, 6'd30: begin
+                            display_left <= {4'd0, (GAME_TIME_MAX - game_time_sec) & 4'hF};
+                        end
+                        default: begin
+                            display_left <= 8'd0;
+                        end
+                    endcase
                     display_right <= score;
 
                     // Clear game timer when first entering PLAYING state to ensure it starts from 0
