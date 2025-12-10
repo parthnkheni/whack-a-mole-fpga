@@ -1,0 +1,49 @@
+`timescale 1ns/1ps
+
+module tb_debounce_one_pulse;
+
+reg clk;
+reg rst_n;
+reg btn_raw;
+wire btn_level;
+wire btn_pulse;
+
+debounce_one_pulse #(
+    .CNTR_WIDTH(4)
+) dut (
+    .clk(clk),
+    .rst_n(rst_n),
+    .btn_raw(btn_raw),
+    .btn_level(btn_level),
+    .btn_pulse(btn_pulse)
+);
+
+initial begin
+    clk = 1'b0;
+    forever #5 clk = ~clk;
+end
+
+initial begin
+    rst_n   = 1'b0;
+    btn_raw = 1'b0;
+
+    #20 rst_n = 1'b1;
+
+    #40 btn_raw = 1'b1;
+    #20 btn_raw = 1'b0;
+
+    #40 btn_raw = 1'b1;
+    #200 btn_raw = 1'b0;
+
+    #200 btn_raw = 1'b1;
+    #200 btn_raw = 1'b0;
+
+    #200 $finish;
+end
+
+initial begin
+    $dumpfile("tb_debounce_one_pulse.vcd");
+    $dumpvars(0, tb_debounce_one_pulse);
+end
+
+endmodule

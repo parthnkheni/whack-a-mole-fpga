@@ -1,0 +1,315 @@
+module game_control_fsm(
+    input  wire        clk,
+    input  wire        rst_n,
+
+    // These are expected to be ONE-CYCLE PULSES (from button_io)
+    input  wire        btn_start,             // start / reset game
+    input  wire        btn_clear_score,       // clear score (optional feature)
+    input  wire        btn_difficulty_pulse,  // cycle difficulty
+    input  wire [1:0]  difficulty_level_input,
+
+    // Timers and score from other modules
+    input  wire [5:0]  countdown_sec,         // seconds since countdown started
+    input  wire [5:0]  game_time_sec,         // seconds since game started
+    input  wire [7:0]  score,                 // current score
+
+    // Control signals to submodules
+    output reg         enable_countdown,
+    output reg         clear_countdown,
+    output reg         enable_game_timer,
+    output reg         clear_game_timer,
+    output reg         enable_score,
+    output reg         clear_score,
+    output reg         enable_mole_ctrl,
+    output reg [1:0]   difficulty_level,
+
+    // Value to show on 7-seg (you decide in top how many digits)
+    output reg [7:0]   display_value,
+    // For 4-digit display: left (timer/countdown) and right (score)
+    output reg [7:0]   display_left,
+    output reg [7:0]   display_right
+);
+
+    // ---------------------------------------------------------
+    // State encoding
+    // ---------------------------------------------------------
+    localparam [1:0] STATE_IDLE      = 2'b00;
+    localparam [1:0] STATE_COUNTDOWN = 2'b01;
+    localparam [1:0] STATE_PLAYING   = 2'b10;
+    localparam [1:0] STATE_GAME_OVER = 2'b11;
+
+    localparam [5:0] COUNTDOWN_MAX = 6'd5;    // 5-second countdown
+    localparam [5:0] GAME_TIME_MAX = 6'd30;   // 30-second game
+
+    reg [1:0] state, next_state;
+    reg [1:0] difficulty_reg;
+    reg [1:0] prev_state;  // Track previous state to detect transitions
+
+    // ---------------------------------------------------------
+    // State register + difficulty register
+    // ---------------------------------------------------------
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            state          <= STATE_IDLE;
+            prev_state     <= STATE_IDLE;
+            difficulty_reg <= 2'b00;
+        end else begin
+            prev_state <= state;  // Save current state before update
+            state <= next_state;
+
+            // Only allow difficulty changes in IDLE or GAME_OVER
+            if ((state == STATE_IDLE || state == STATE_GAME_OVER) &&
+                btn_difficulty_pulse) begin
+                difficulty_reg <= difficulty_level_input;
+            end
+        end
+    end
+
+    // ---------------------------------------------------------
+    // Next-state logic
+    // ---------------------------------------------------------
+    always @(*) begin
+        next_state = state;
+
+        case (state)
+            // ---------------------------------------------
+            // IDLE: wait for start button
+            // ---------------------------------------------
+            STATE_IDLE: begin
+                if (btn_start)
+                    next_state = STATE_COUNTDOWN;
+            end
+
+            // ---------------------------------------------
+            // COUNTDOWN: show 5 -> 1, then start playing
+            // ---------------------------------------------
+            STATE_COUNTDOWN: begin
+                if (countdown_sec >= COUNTDOWN_MAX)
+                    next_state = STATE_PLAYING;
+                else if (btn_start)
+                    // pressing start again during countdown restarts countdown
+                    next_state = STATE_COUNTDOWN;
+            end
+
+            // ---------------------------------------------
+            // PLAYING: run for GAME_TIME_MAX seconds
+            // ---------------------------------------------
+            STATE_PLAYING: begin
+                if (game_time_sec >= GAME_TIME_MAX)
+                    next_state = STATE_GAME_OVER;
+                else if (btn_start)
+                    // restart game: go back to countdown
+                    next_state = STATE_COUNTDOWN;
+            end
+
+            // ---------------------------------------------
+            // GAME_OVER: show final score, wait for restart
+            // ---------------------------------------------
+            STATE_GAME_OVER: begin
+                if (btn_start)
+                    next_state = STATE_COUNTDOWN;
+            end
+
+            default: begin
+                next_state = STATE_IDLE;
+            end
+        endcase
+    end
+
+    // ---------------------------------------------------------
+    // Output logic (registered)
+    // ---------------------------------------------------------
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            // Global reset: safe defaults
+            enable_countdown   <= 1'b0;
+            clear_countdown    <= 1'b1;
+            enable_game_timer  <= 1'b0;
+            clear_game_timer   <= 1'b1;
+            enable_score       <= 1'b0;
+            clear_score        <= 1'b1;
+            enable_mole_ctrl   <= 1'b0;
+
+            difficulty_level   <= 2'b00;
+            display_value      <= 8'd0;
+            display_left       <= 8'd0;
+            display_right      <= 8'd0;
+        end else begin
+            // Default each cycle
+            enable_countdown   <= 1'b0;
+            enable_game_timer  <= 1'b0;
+            enable_score       <= 1'b0;
+            enable_mole_ctrl   <= 1'b0;
+
+            clear_countdown    <= 1'b0;
+            clear_game_timer   <= 1'b0;
+            clear_score        <= 1'b0;
+
+            difficulty_level   <= difficulty_reg;
+            display_value      <= 8'd0;
+            display_left       <= 8'd0;
+            display_right      <= 8'd0;
+
+            case (state)
+                // -----------------------------------------
+                // IDLE: everything cleared, display difficulty level (00, 01, 02)
+                // -----------------------------------------
+                STATE_IDLE: begin
+                    clear_countdown  <= 1'b1;
+                    clear_game_timer <= 1'b1;
+                    clear_score      <= 1'b1;
+
+                    // Display current difficulty level: 00, 01, or 02
+                    // difficulty_reg is 2 bits (00, 01, 02), convert to BCD format
+                    display_value    <= {4'd0, difficulty_reg};
+                    display_left     <= 8'd0;
+                    display_right    <= {4'd0, difficulty_reg};
+
+                    // clear-score button here is basically redundant,
+                    // but we keep for safety/consistency.
+                    if (btn_clear_score) begin
+                        clear_score      <= 1'b1;
+                        clear_game_timer <= 1'b1;
+                    end
+                end
+
+                // -----------------------------------------
+                // COUNTDOWN: enable countdown, show remaining time
+                // -----------------------------------------
+                STATE_COUNTDOWN: begin
+                    // Clear countdown when first entering COUNTDOWN state
+                    // (transitioning from IDLE or GAME_OVER)
+                    if (prev_state != STATE_COUNTDOWN) begin
+                        clear_countdown <= 1'b1;
+                    end
+                    
+                    enable_countdown  <= 1'b1;
+                    // make sure game timer & score are reset before play
+                    clear_game_timer  <= 1'b1;
+                    clear_score       <= 1'b1;
+
+                    // Display countdown: 5, 4, 3, 2, 1 on rightmost digit
+                    // countdown_sec starts at 0, so we show (5-0)=5, then (5-1)=4, etc.
+                    // When countdown_sec >= COUNTDOWN_MAX, we're transitioning to PLAYING
+                    display_left <= 8'd0;
+                    if (countdown_sec < COUNTDOWN_MAX) begin
+                        // Convert to BCD format: [7:4] = tens, [3:0] = ones
+                        // COUNTDOWN_MAX - countdown_sec gives value 5, 4, 3, 2, 1
+                        // Since all values are < 10, tens = 0, ones = value
+                        display_value <= {4'd0, (COUNTDOWN_MAX - countdown_sec)};
+                        display_right <= {4'd0, (COUNTDOWN_MAX - countdown_sec)};
+                    end else begin
+                        display_value <= 8'd0;
+                        display_right <= 8'd0;
+                    end
+
+                    if (btn_clear_score) begin
+                        clear_score      <= 1'b1;
+                        clear_game_timer <= 1'b1;
+                    end
+
+                    if (btn_start) begin
+                        // pressing start during countdown: restart countdown
+                        clear_countdown <= 1'b1;
+                    end
+                end
+
+                // -----------------------------------------
+                // PLAYING: enable game timer, scoring and mole control
+                // -----------------------------------------
+                STATE_PLAYING: begin
+                    // Enable game timer - starts counting from 0 when entering PLAYING state
+                    // (game timer was cleared during COUNTDOWN state)
+                    enable_game_timer <= 1'b1;
+                    enable_score      <= 1'b1;
+                    enable_mole_ctrl  <= 1'b1;
+
+                    // Display current score during gameplay
+                    display_value     <= score;
+                    
+                    // Calculate countdown: 30 - game_time_sec, convert to BCD format
+                    // time_remaining ranges from 30 (when game_time_sec=0) to 0 (when game_time_sec=30)
+                    // BCD format: [7:4] = tens, [3:0] = ones
+                    if (game_time_sec <= GAME_TIME_MAX) begin
+                        case (game_time_sec)
+                            6'd0: display_left <= 8'h30;
+                            6'd1: display_left <= 8'h29;
+                            6'd2: display_left <= 8'h28;
+                            6'd3: display_left <= 8'h27;
+                            6'd4: display_left <= 8'h26;
+                            6'd5: display_left <= 8'h25;
+                            6'd6: display_left <= 8'h24;
+                            6'd7: display_left <= 8'h23;
+                            6'd8: display_left <= 8'h22;
+                            6'd9: display_left <= 8'h21;
+                            6'd10: display_left <= 8'h20;
+                            6'd11: display_left <= 8'h19;
+                            6'd12: display_left <= 8'h18;
+                            6'd13: display_left <= 8'h17;
+                            6'd14: display_left <= 8'h16;
+                            6'd15: display_left <= 8'h15;
+                            6'd16: display_left <= 8'h14;
+                            6'd17: display_left <= 8'h13;
+                            6'd18: display_left <= 8'h12;
+                            6'd19: display_left <= 8'h11;
+                            6'd20: display_left <= 8'h10;
+                            6'd21: display_left <= 8'h09;
+                            6'd22: display_left <= 8'h08;
+                            6'd23: display_left <= 8'h07;
+                            6'd24: display_left <= 8'h06;
+                            6'd25: display_left <= 8'h05;
+                            6'd26: display_left <= 8'h04;
+                            6'd27: display_left <= 8'h03;
+                            6'd28: display_left <= 8'h02;
+                            6'd29: display_left <= 8'h01;
+                            6'd30: display_left <= 8'h00;
+                            default: display_left <= 8'd0;
+                        endcase
+                    end else begin
+                        display_left <= 8'd0;
+                    end
+                    display_right <= score;
+
+                    // Clear game timer when first entering PLAYING state to ensure it starts from 0
+                    // This ensures clean transition from COUNTDOWN to PLAYING
+                    if (prev_state != STATE_PLAYING) begin
+                        clear_game_timer <= 1'b1;
+                    end
+
+                    // clear-score button: reset score + timer
+                    if (btn_clear_score) begin
+                        clear_score      <= 1'b1;
+                        clear_game_timer <= 1'b1;
+                    end
+
+                    // start button: full reset for a new round
+                    if (btn_start) begin
+                        clear_countdown  <= 1'b1;
+                        clear_game_timer <= 1'b1;
+                        clear_score      <= 1'b1;
+                    end
+                end
+
+                // -----------------------------------------
+                // GAME_OVER: freeze game, show final score
+                // -----------------------------------------
+                STATE_GAME_OVER: begin
+                    display_value <= score;
+                    display_left  <= 8'd0;
+                    display_right <= score;
+
+                    if (btn_clear_score) begin
+                        clear_score      <= 1'b1;
+                        clear_game_timer <= 1'b1;
+                    end
+                end
+
+                default: begin
+                    // stay with safe defaults
+                end
+            endcase
+        end
+    end
+
+endmodule
+
